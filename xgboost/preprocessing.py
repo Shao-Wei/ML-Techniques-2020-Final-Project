@@ -26,8 +26,8 @@ makeNaN_features = ['company',
                     ]
 
 makeOthers_list = [['country', 'PRT', 'GBR', 'other'],        # 0: feature, 1~len-2: types, len-1: label
-                   ['market_segment', 'Online TA', 'Offline TA/TO', 'other'],
-                   ['distribution_channel', 'TA/TO', 'Direct', 'other'],
+                   #['market_segment', 'Online TA', 'Offline TA/TO', 'other'],
+                   #['distribution_channel', 'TA/TO', 'Direct', 'other'],
                    ['agent', 9, -1, -2],
                    ['company', -1, 40, -2],
                    ]
@@ -38,8 +38,8 @@ one_hot_list = [['hotel', 'Resort Hotel', 'City Hotel'],        # 0: feature, 1~
                 ['arrival_date_day_of_month', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
                 ['meal', 'Undefined', 'SC', 'BB', 'HB', 'FB'],
                 ['country', 'PRT', 'GBR', 'other'],
-                ['market_segment', 'Online TA', 'Offline TA/TO', 'other'],
-                ['distribution_channel', 'TA/TO', 'Direct', 'other'],
+                #['market_segment', 'Online TA', 'Offline TA/TO', 'other'],
+                #['distribution_channel', 'TA/TO', 'Direct', 'other'],
                 ['market_segment', 'Direct', 'Online TA', 'Offline TA/TO', 'Groups', 'Corporate', 'Complementary', 'Aviation', 'Undefined'],
                 ['distribution_channel', 'TA/TO', 'Direct', 'Corporate', 'GDS', 'Undefined'],
                 ['reserved_room_type', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'L', 'P'],
