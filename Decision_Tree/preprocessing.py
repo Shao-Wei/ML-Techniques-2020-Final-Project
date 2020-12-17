@@ -37,9 +37,8 @@ labelList = ['is_canceled', 'adr', 'reservation_status', 'reservation_status_dat
 
 
 ## preprocess function
-def preprocess(trainFileName, testFileName):
-    print("Preprocessing..")
-    ## preprocessing train
+def preprocess_train(trainFileName):
+    print("Preprocessing..", trainFileName)
     dfRawTrain = pd.read_csv(trainFileName, header = 0, sep=',') # read in csv
     dfRawTrain.dropna() # drop data w/ missing entries
 
@@ -59,10 +58,15 @@ def preprocess(trainFileName, testFileName):
     dfAdr = checkIsNull(dfAdr, "dfAdr")
     feature_train = list(dfRawTrain.columns[:])
     # print("* dfRawTrain.head()", dfRawTrain.head(), sep='\n', end='\n\n')
+    dfEncodedTrain = dfRawTrain.sort_index(ascending = False, axis = 1) 
 
-    ## preprocessing test
+    print("Preprocess done.")
+    return dfEncodedTrain, dfAdr, feature_train
+
+def preprocess_test(testFileName, feature_train):
+    print("Preprocessing..", testFileName)
     dfRawTest = pd.read_csv(testFileName, header = 0, sep=',') # read in csv
-    dfRawTest.dropna() # drop data w/ missing entries
+    # dfRawTest.dropna() # drop data w/ missing entries
 
     for target in dropList:
         dfRawTest.drop(target, inplace=True, axis=1)
@@ -79,6 +83,8 @@ def preprocess(trainFileName, testFileName):
     for target in feature_missing:
         dfRawTest[target] = '0'
     # print("* dfRawTest.head()", dfRawTest.head(), sep='\n', end='\n\n')
+    dfEncodedTest = dfRawTest.sort_index(ascending = False, axis = 1)
+
     print("Preprocess done.")
-    return dfRawTrain, dfAdr, dfRawTest
+    return dfEncodedTest
 

@@ -23,10 +23,11 @@ classifiers = [
 ]
 
 ## get data
-dfRawTrain, dfAdr, dfRawTest = pp.preprocess(traincsv, testcsv)
+dfTrain, dfAdr, feature_train = pp.preprocess_train(traincsv)
+dfTest = pp.preprocess_test(testcsv, feature_train)
 
 y_train = dfAdr
-X_train = dfRawTrain
+X_train = dfTrain
 
 # for d in range(5, 40, 4): # Best: d = 13, mean = 0.41, w/o cv = 0.72 
 #     print("max_depth: ", d)
