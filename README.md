@@ -51,3 +51,15 @@ Techniques
 - 1/15 Report completed  
 - 1/19: Report due at noon   
 
+# Feature preprocessing lists
+
+- oheList = ['hotel',  'meal', 'market_segment', 'distribution_channel', 'reserved_room_type', 'assigned_room_type', 'deposit_type', 'customer_type']  
+
+- standardizeList = ['lead_time', 'stays_in_weekend_nights', 'stays_in_week_nights', 'adults', 'children', 'babies', 'previous_cancellations', 'previous_bookings_not_canceled', 'booking_changes', 'days_in_waiting_list', 'required_car_parking_spaces', 'total_of_special_requests']  
+
+- donothingList = ['is_repeated_guest']  
+
+- dropList = ['ID', 'arrival_date_year', 'arrival_date_month', 'arrival_date_week_number', 'arrival_date_day_of_month', 'country', 'agent', 'company', 'reservation_status', 'reservation_status_date']
+
+- labelList = ['is_canceled', 'adr']  
+
