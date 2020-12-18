@@ -25,12 +25,11 @@ def checkIsNull(df, dfName):
     return df
 
 ## feature classes
-oheList = ['hotel', 'arrival_date_year', 'arrival_date_month', 'meal', 'market_segment', 'distribution_channel', 'reserved_room_type', 'assigned_room_type', 'deposit_type', 'customer_type']
+oheList = ['hotel', 'meal', 'market_segment', 'distribution_channel', 'reserved_room_type', 'assigned_room_type', 'deposit_type', 'customer_type']
 scaleList = ['lead_time', 'stays_in_weekend_nights', 'stays_in_week_nights', 'adults', 'children', 'babies', 'previous_cancellations', 'previous_bookings_not_canceled', 'booking_changes', 'days_in_waiting_list', 'required_car_parking_spaces', 'total_of_special_requests']
 donothingList = ['is_repeated_guest']
-dropList = ['ID', 'arrival_date_week_number', 'arrival_date_day_of_month', 'country', 'agent', 'company'] # entries of no use
+dropList = ['ID', 'arrival_date_year', 'arrival_date_month', 'arrival_date_week_number', 'arrival_date_day_of_month', 'country', 'agent', 'company'] # entries of no use
 labelList = ['is_canceled', 'adr', 'reservation_status', 'reservation_status_date']
-
 
 ## preprocess function
 def preprocess_train(trainFileName):
@@ -76,6 +75,7 @@ def preprocess_test(testFileName, feature_train):
     dfRawTest = checkIsNull(dfRawTest, "dfRawTest")
     feature_test = list(dfRawTest.columns[:])
     feature_missing = [i for i in feature_train if i not in feature_test] # append missing feature columns
+    print("missing features: ", feature_missing, sep = ' ', end = '\n\n')
     for target in feature_missing:
         dfRawTest[target] = '0'
     # print("* dfRawTest.head()", dfRawTest.head(), sep='\n', end='\n\n')

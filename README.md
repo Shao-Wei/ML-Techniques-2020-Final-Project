@@ -63,3 +63,8 @@ Techniques
 
 - labelList = ['is_canceled', 'adr']  
 
+# Baseline Report (12/25 due)
+|                | is_canceled(0/1 error) | adr(mse) | quantized(L1) | is_canceled*adr(mse) | quantized(L1) |
+|----------------|------------------------|----------|---------------|----------------------|---------------|
+| model settings |                        |          |               |                      |               |
+
