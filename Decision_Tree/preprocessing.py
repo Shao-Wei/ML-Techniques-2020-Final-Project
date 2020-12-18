@@ -1,9 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.model_selection import cross_val_score
-from sklearn import linear_model
-from sklearn import svm
 
 def encode_target(dfRaw, targetCol, dfEncode, encodeCol): # Add column to df with integers for the target.
     targets = dfRaw[targetCol].unique()
