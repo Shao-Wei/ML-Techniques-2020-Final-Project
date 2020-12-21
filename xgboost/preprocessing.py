@@ -2,13 +2,22 @@ import numpy as np
 import pandas as pd
 import util
 
-del_features = ['ID', 
-                #'is_canceled', 
-                #'adr', 
+del_features = ['ID',
+                'arrival_date_year', 
+                'arrival_date_month', 
                 'arrival_date_week_number', 
-                'reservation_status', 
-                'reservation_status_date'
+                'arrival_date_day_of_month', 
+                'country', 
+                'agent', 
+                'company', 
                 ]
+
+label_features = ['reservation_status', 
+                  'reservation_status_date', 
+                  'is_canceled',
+                  'adr',
+                  ]
+
 stand_features = ['lead_time', 
                   'stays_in_weekend_nights', 
                   'stays_in_week_nights', 
@@ -16,47 +25,37 @@ stand_features = ['lead_time',
                   'children', 
                   'babies', 
                   'previous_cancellations', 
-                  'previous_bookings_not_canceled', 'booking_changes', 
+                  'previous_bookings_not_canceled', 
+                  'booking_changes', 
                   'days_in_waiting_list', 
                   'required_car_parking_spaces', 
-                  'total_of_special_requests',
-                  #'arrival_date_year',
-                  #'arrival_date_month',
-                  #'arrival_date_day_of_month',
+                  'total_of_special_requests'
                   ]
 
-makeNaN_list = [['company', -1],      # 0: feature, 1: label
-                ['agent', -1],
-                ['children', 0],   # 'children' in train.csv has missing entries
+one_hot_list = ['hotel', 
+                'meal', 
+                'market_segment', 
+                'distribution_channel', 
+                'reserved_room_type', 
+                'assigned_room_type', 
+                'deposit_type', 
+                'customer_type'
                 ]
 
-makeOthers_list = [['country', 'PRT', 'GBR', 'other'],        # 0: feature, 1~len-2: types, len-1: label
-                   #['market_segment', 'Online TA', 'Offline TA/TO', 'other'],
-                   #['distribution_channel', 'TA/TO', 'Direct', 'other'],
-                   ['agent', 9, -1, -2],
-                   ['company', -1, 40, -2],
-                   ]
+# encode_list = [['arrival_date_month', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],        # 0: feature, 1~len-1: types
+#                ]
 
-one_hot_list = [['hotel', 'Resort Hotel', 'City Hotel'],        # 0: feature, 1~len-1: types
-                ['arrival_date_year', 2015, 2016, 2017],
-                ['arrival_date_month', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-                ['arrival_date_day_of_month', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
-                ['meal', 'Undefined', 'SC', 'BB', 'HB', 'FB'],
-                ['country', 'PRT', 'GBR', 'other'],
-                #['market_segment', 'Online TA', 'Offline TA/TO', 'other'],
-                #['distribution_channel', 'TA/TO', 'Direct', 'other'],
-                ['market_segment', 'Direct', 'Online TA', 'Offline TA/TO', 'Groups', 'Corporate', 'Complementary', 'Aviation', 'Undefined'],
-                ['distribution_channel', 'TA/TO', 'Direct', 'Corporate', 'GDS', 'Undefined'],
-                ['reserved_room_type', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'L', 'P'],
-                ['assigned_room_type', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'P'],
-                ['deposit_type', 'No Deposit', 'Non Refund', 'Refundable'],
-                ['agent', 9, -1, -2],
-                ['company', -1, 40, -2],
-                ['customer_type', 'Contract', 'Group', 'Transient', 'Transient-party'],
-                ]
+# makeNaN_list = [['company', -1],      # 0: feature, 1: label
+#                 ['agent', -1],
+#                 ['children', 0],   # 'children' in train.csv has missing entries
+#                 ]
 
-encode_list = [['arrival_date_month', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],        # 0: feature, 1~len-1: types
-               ]
+# makeOthers_list = [['country', 'PRT', 'GBR', 'other'],        # 0: feature, 1~len-2: types, len-1: label
+#                    #['market_segment', 'Online TA', 'Offline TA/TO', 'other'],
+#                    #['distribution_channel', 'TA/TO', 'Direct', 'other'],
+#                    ['agent', 9, -1, -2],
+#                    ['company', -1, 40, -2],
+#                    ]
 
 def feature_delete_one(df, feature):
     del df[feature]
@@ -74,91 +73,123 @@ def feature_standardize(df, features):
     for i in range(len(features)):
         feature_standardize_one(df, features[i])
 
-def feature_makeNaN_one(df, feature, label):
-    for i in range(len(df)):
-        if (pd.isnull(df.iloc[i][feature])):
-            df.iat[i, df.columns.get_loc(feature)] = label
+# def feature_makeNaN_one(df, feature, label):
+#     for i in range(len(df)):
+#         if (pd.isnull(df.iloc[i][feature])):
+#             df.iat[i, df.columns.get_loc(feature)] = label
 
-def feature_makeNaN(df, list):
-    for i in range(len(list)):
-        feature_makeNaN_one(df, list[i][0], list[i][1])
+# def feature_makeNaN(df, list):
+#     for i in range(len(list)):
+#         feature_makeNaN_one(df, list[i][0], list[i][1])
 
-def feature_makeOthers_one(df, feature, types, label):
-    for i in range(len(df)):
-        isOther = 1
-        for j in range(len(types)):
-            isOther = isOther & (df.iloc[i][feature] != types[j])
-            # if (isOther == 0): break
-        if (isOther):
-            df.iat[i, df.columns.get_loc(feature)] = label
+def checkIsNull(df):
+    if df.isnull().values.any():
+        features = list(df.columns[:]) # get list of all features
+        for target in features:
+            if df[target].isnull().values.any():
+                df[target] = df[target].replace(np.nan, 0)
+    return df
 
-def feature_makeOthers(df, list):
-    for i in range(len(list)):
-        one_list = list[i]
-        feature_makeOthers_one(df, one_list[0], one_list[1:len(one_list) - 1], one_list[len(one_list) - 1])
+# def feature_makeOthers_one(df, feature, types, label):
+#     for i in range(len(df)):
+#         isOther = 1
+#         for j in range(len(types)):
+#             isOther = isOther & (df.iloc[i][feature] != types[j])
+#             # if (isOther == 0): break
+#         if (isOther):
+#             df.iat[i, df.columns.get_loc(feature)] = label
+
+# def feature_makeOthers(df, list):
+#     for i in range(len(list)):
+#         one_list = list[i]
+#         feature_makeOthers_one(df, one_list[0], one_list[1:len(one_list) - 1], one_list[len(one_list) - 1])
         
-def feature_one_hot_one(df, feature, types):
-    names = [feature + '_' + str(a) for a in types]
-    columns = [[] for _ in range(len(types))]
-    for i in range(len(df)):
-        for j in range(len(types)):
-            columns[j].append(float(df.iloc[i][feature] == types[j]))
-    
-    for i in range(len(types)):
-        df.insert(len(df.columns), names[i], columns[i], True) 
-
-    feature_delete_one(df, feature)
+def feature_one_hot_one(df, feature):
+    pOHE = pd.get_dummies(df[feature], prefix = feature)
+    df.drop(feature, inplace=True, axis = 1)
+    dfNew = pd.concat([df, pOHE], axis = 1)
+    return dfNew
 
 def feature_one_hot(df, list):
-    for i in range(len(list)):
-        one_list = list[i]
-        feature_one_hot_one(df, one_list[0], one_list[1:len(one_list)])
+    dfNew = df.copy()
+    for target in list:
+        dfNew = feature_one_hot_one(dfNew, target)
+    return dfNew
 
-def feature_encode_one(df, feature, types):
-    column = []
-    for i in range(len(df)):
-        for j in range(len(types)):
-            if (df.iloc[i][feature] == types[j]):
-                column.append(j)
-                continue
+# def feature_encode_one(df, feature, types):
+#     column = []
+#     for i in range(len(df)):
+#         for j in range(len(types)):
+#             if (df.iloc[i][feature] == types[j]):
+#                 column.append(j)
+#                 continue
     
-    df.insert(len(df.columns), feature, column, True) 
-    feature_delete_one(df, feature)
+#     df.insert(len(df.columns), feature, column, True) 
+#     feature_delete_one(df, feature)
 
-def feature_encode(df, list):
-    for i in range(len(list)):
-        one_list = list[i]
-        feature_encode_one(df, one_list[0], one_list[1:len(one_list)])
+# def feature_encode(df, list):
+#     for i in range(len(list)):
+#         one_list = list[i]
+#         feature_encode_one(df, one_list[0], one_list[1:len(one_list)])
 
-def feature_merge_two_multi(df, feature1, feature2, name): # feature = feature1 * feature2
-    column = []
-    for i in range(len(df)):
-        column.append(df.iloc[i][feature1] * df.iloc[i][feature2])
+# def feature_merge_two_multi(df, feature1, feature2, name): # feature = (feature1)' * feature2
+#     column = []
+#     for i in range(len(df)):
+#         column.append((not df.iloc[i][feature1]) * df.iloc[i][feature2])
     
-    df.insert(0, name, column, True) 
-    feature_delete_one(df, feature1)
-    feature_delete_one(df, feature2)
+#     df.insert(0, name, column, True) 
+#     feature_delete_one(df, feature1)
+#     feature_delete_one(df, feature2)
 
-def preprocessing_adr():
-    data_train = pd.read_csv('../data/train.csv')
+def preprocessing_train(file):
+    dfRawTrain = pd.read_csv(file)
+    dfRawTrain = dfRawTrain.sample(frac=1) # shuffle
+    dfRawTrain.reset_index(drop=True, inplace=True)
+    dfTrain = dfRawTrain.copy()
 
-    feature_delete(data_train, del_features)
-    feature_makeNaN(data_train, makeNaN_list)
-    feature_makeOthers(data_train, makeOthers_list)
-    #feature_encode(data_train, encode_list)
-    feature_one_hot(data_train, one_hot_list)
-    feature_merge_two_multi(data_train, 'is_canceled', 'adr', 'adr_real')
+    dfIsCanceled = dfTrain['is_canceled'].to_frame() # reserve label is_canceled
+    dfIsCanceled.reset_index(drop=True, inplace=True)
+    dfAdr = dfTrain['adr'].to_frame() # reserve label adr
+    dfAdr.reset_index(drop=True, inplace=True)
+    dfIsCanceled = checkIsNull(dfIsCanceled)
+    dfAdr = checkIsNull(dfAdr)
+    dfAdrReal = ((dfIsCanceled['is_canceled'] == 0) * dfAdr['adr']).to_frame() # get real adr
+    dfAdrReal = dfAdrReal.rename(columns={0: 'adr_real'})
+
+    feature_delete(dfTrain, del_features)
+    feature_delete(dfTrain, label_features)
+    dfTrain = checkIsNull(dfTrain)
+    dfTrain = feature_one_hot(dfTrain, one_hot_list)
+    feature_standardize(dfTrain, stand_features)
     #data_train = data_train.dropna()
-    feature_standardize(data_train, stand_features)
-    data_train.to_csv('../data/train_pre_noshuffle.csv', index=False, header=False)
-    data_train = data_train.sample(frac=1) # shuffle
+    feature_train = list(dfTrain.columns[:])
+    dfTrain = dfTrain.sort_index(ascending = False, axis = 1) 
 
-    data_train.to_csv('../data/train_pre.csv', index=False, header=False)
+    return dfTrain, dfRawTrain, dfAdr, dfIsCanceled, dfAdrReal, feature_train
 
-def preprocessing_revenue():
-    data_train = pd.read_csv('../data/train.csv')
-    data_train_label = pd.read_csv('../data/train_label.csv')
-    feature_delete_one(data_train_label, 'arrival_date')
-    revenue_no_quan = util.get_revenue_no_quan(data_train)
-    data_train_label.insert(len(data_train_label.columns), 'label_no_quan', revenue_no_quan, True) 
-    data_train_label.to_csv('../data/train_label_label_no_quan.csv', index=False, header=False)
+def preprocessing_test(file, feature_train):
+    dfRawTest = pd.read_csv(file)
+    dfTest = dfRawTest.copy()
+
+    feature_delete(dfTest, del_features)
+    dfTest = checkIsNull(dfTest)
+    dfTest = feature_one_hot(dfTest, one_hot_list)
+    feature_standardize(dfTest, stand_features)
+    #data_train = data_train.dropna()
+
+    feature_test = list(dfTest.columns[:])
+    feature_missing = [i for i in feature_train if i not in feature_test] # append missing feature columns
+    for target in feature_missing:
+        dfTest[target] = '0'
+        dfTest[target] = pd.to_numeric(dfTest[target])
+    dfTest = dfTest.sort_index(ascending = False, axis = 1) 
+
+    return dfTest, dfRawTest
+
+# def preprocessing_revenue():
+#     data_train = pd.read_csv('../data/train.csv')
+#     data_train_label = pd.read_csv('../data/train_label.csv')
+#     feature_delete_one(data_train_label, 'arrival_date')
+#     revenue_no_quan = util.get_revenue_no_quan(data_train)
+#     data_train_label.insert(len(data_train_label.columns), 'label_no_quan', revenue_no_quan, True) 
+#     data_train_label.to_csv('../data/train_label_label_no_quan.csv', index=False, header=False)
