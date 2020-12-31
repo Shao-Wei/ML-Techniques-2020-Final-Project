@@ -13,14 +13,13 @@ def ohe_target(df, targetCol):
     dfNew = pd.concat([df, pOHE], axis = 1)
     return dfNew
 
-def checkIsNull(df, dfName):
-    print("    Check null entries in ", dfName)
+def checkIsNull(df):
     if df.isnull().values.any():
         features = list(df.columns[:]) # get list of all features
         # print("* features:", features, sep="\n", end='\n\n')
         for target in features:
             if df[target].isnull().values.any():
-                print("        IsNULL column filled up: ", target, end='\n')
+                print("    IsNULL column filled up: ", target, end='\n')
                 df[target] = df[target].replace(np.nan, 0)
     return df
 
@@ -33,8 +32,9 @@ labelList = ['is_canceled', 'adr', 'reservation_status', 'reservation_status_dat
 
 ## preprocess function
 def preprocess_train(trainFileName):
-    print("Preprocessing..", trainFileName)
+    print("  Preprocessing..", trainFileName)
     dfRawTrain = pd.read_csv(trainFileName, header = 0, sep=',') # read in csv
+    dfRawTrain_dup = dfRawTrain.copy()
     dfRawTrain.dropna() # drop data w/ missing entries
 
     dfIsCanceled = dfRawTrain[['is_canceled']] # reserve label is_canceled
@@ -49,18 +49,22 @@ def preprocess_train(trainFileName):
     for target in scaleList:
         dfRawTrain[target] = (dfRawTrain[target] - dfRawTrain[target].mean()) / dfRawTrain[target].std()
 
-    dfRawTrain = checkIsNull(dfRawTrain, "dfRawTrain")
-    dfAdr = checkIsNull(dfAdr, "dfAdr")
+    dfRawTrain = checkIsNull(dfRawTrain)
+    dfAdr = checkIsNull(dfAdr)
+    dfIsCanceled = checkIsNull(dfIsCanceled)
+    dfAdrReal = ((dfIsCanceled['is_canceled'] == 0) * dfAdr['adr']).to_frame() # get real adr
+    dfAdrReal = dfAdrReal.rename(columns={0: 'adr_real'})
+    
     feature_train = list(dfRawTrain.columns[:])
     # print("* dfRawTrain.head()", dfRawTrain.head(), sep='\n', end='\n\n')
     dfEncodedTrain = dfRawTrain.sort_index(ascending = False, axis = 1) 
 
-    print("Preprocess done.")
-    return dfEncodedTrain, dfAdr, feature_train
+    return dfEncodedTrain, dfAdr, dfIsCanceled, dfAdrReal, dfRawTrain_dup, feature_train
 
 def preprocess_test(testFileName, feature_train):
-    print("Preprocessing..", testFileName)
+    print("  Preprocessing..", testFileName)
     dfRawTest = pd.read_csv(testFileName, header = 0, sep=',') # read in csv
+    dfRawTest_dup = dfRawTest.copy()
     # dfRawTest.dropna() # drop data w/ missing entries
 
     for target in dropList:
@@ -72,15 +76,14 @@ def preprocess_test(testFileName, feature_train):
     for target in scaleList:
         dfRawTest[target] = (dfRawTest[target] - dfRawTest[target].mean()) / dfRawTest[target].std()
 
-    dfRawTest = checkIsNull(dfRawTest, "dfRawTest")
+    dfRawTest = checkIsNull(dfRawTest)
     feature_test = list(dfRawTest.columns[:])
     feature_missing = [i for i in feature_train if i not in feature_test] # append missing feature columns
-    print("missing features: ", feature_missing, sep = ' ', end = '\n\n')
+    print("    missing features: ", feature_missing, sep = ' ', end = '\n\n')
     for target in feature_missing:
         dfRawTest[target] = '0'
     # print("* dfRawTest.head()", dfRawTest.head(), sep='\n', end='\n\n')
     dfEncodedTest = dfRawTest.sort_index(ascending = False, axis = 1)
 
-    print("Preprocess done.")
-    return dfEncodedTest
+    return dfEncodedTest, dfRawTest_dup
 
