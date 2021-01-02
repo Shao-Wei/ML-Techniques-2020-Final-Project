@@ -141,11 +141,14 @@ def feature_one_hot(df, list):
 #     feature_delete_one(df, feature1)
 #     feature_delete_one(df, feature2)
 
-def preprocessing_train(file):
-    dfRawTrain = pd.read_csv(file)
+def preprocessing(file_train, file_test):
+    dfRawTrain = pd.read_csv(file_train)
     dfRawTrain = dfRawTrain.sample(frac=1) # shuffle
     dfRawTrain.reset_index(drop=True, inplace=True)
     dfTrain = dfRawTrain.copy()
+
+    dfRawTest = pd.read_csv(file_test)
+    dfTest = dfRawTest.copy()
 
     dfIsCanceled = dfTrain['is_canceled'].to_frame() # reserve label is_canceled
     dfIsCanceled.reset_index(drop=True, inplace=True)
@@ -156,35 +159,19 @@ def preprocessing_train(file):
     dfAdrReal = ((dfIsCanceled['is_canceled'] == 0) * dfAdr['adr']).to_frame() # get real adr
     dfAdrReal = dfAdrReal.rename(columns={0: 'adr_real'})
 
-    feature_delete(dfTrain, del_features)
     feature_delete(dfTrain, label_features)
-    dfTrain = checkIsNull(dfTrain)
-    dfTrain = feature_one_hot(dfTrain, one_hot_list)
-    feature_standardize(dfTrain, stand_features)
+    dfAll = pd.concat([dfTrain, dfTest])
+    nTrain = len(dfTrain)
+    feature_delete(dfAll, del_features)
+    dfAll = checkIsNull(dfAll)
+    dfAll = feature_one_hot(dfAll, one_hot_list)
+    feature_standardize(dfAll, stand_features)
     #data_train = data_train.dropna()
-    feature_train = list(dfTrain.columns[:])
-    dfTrain = dfTrain.sort_index(ascending = False, axis = 1) 
+    dfAll = dfAll.sort_index(ascending = False, axis = 1)
+    dfTrain = dfAll.iloc[:nTrain, :]
+    dfTest = dfAll.iloc[nTrain:,  :]
 
-    return dfTrain, dfRawTrain, dfAdr, dfIsCanceled, dfAdrReal, feature_train
-
-def preprocessing_test(file, feature_train):
-    dfRawTest = pd.read_csv(file)
-    dfTest = dfRawTest.copy()
-
-    feature_delete(dfTest, del_features)
-    dfTest = checkIsNull(dfTest)
-    dfTest = feature_one_hot(dfTest, one_hot_list)
-    feature_standardize(dfTest, stand_features)
-    #data_train = data_train.dropna()
-
-    feature_test = list(dfTest.columns[:])
-    feature_missing = [i for i in feature_train if i not in feature_test] # append missing feature columns
-    for target in feature_missing:
-        dfTest[target] = '0'
-        dfTest[target] = pd.to_numeric(dfTest[target])
-    dfTest = dfTest.sort_index(ascending = False, axis = 1) 
-
-    return dfTest, dfRawTest
+    return dfTrain, dfRawTrain, dfAdr, dfIsCanceled, dfAdrReal, dfTest, dfRawTest
 
 # def preprocessing_revenue():
 #     data_train = pd.read_csv('../data/train.csv')

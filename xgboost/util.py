@@ -33,12 +33,12 @@ def L1_Error(label, predict):
 
 def get_iBestAlg(errors):
     for i in range(0, len(errors)):
-        print("E_valid of ", i, "-th algorithm = ", errors[i], sep='')
+        print("E_train_out of ", i, "-th algorithm = ", errors[i], sep='')
     iBestAlg = 0
     E_min = errors[0]
     for i in range(1, len(errors)):
         if (errors[i] < E_min):
             E_min = errors[i]
             iBestAlg = i
-    print("best E_valid = ", E_min, sep='')
+    print("best E_train_out = ", E_min, sep='')
     return iBestAlg
