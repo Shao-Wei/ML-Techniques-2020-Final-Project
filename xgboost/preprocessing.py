@@ -42,6 +42,72 @@ one_hot_list = ['hotel',
                 'customer_type'
                 ]
 
+pow_2_list_for_stand = ['total_of_special_requests',
+                        'required_car_parking_spaces',
+                        'lead_time',
+                        'children',
+                        ]
+multi_2_list_for_one_hot = ['market_segment_Online TA',
+                            'market_segment_Groups',
+                            'market_segment_Direct',
+                            'hotel_Resort Hotel',
+                            'hotel_City Hotel',
+                            'deposit_type_Non Refund',
+                            'deposit_type_No Deposit',
+                            'assigned_room_type_A'
+                            ]
+
+stand_list_for_one_hot = ['reserved_room_type_P',
+                          'reserved_room_type_L',
+                          'reserved_room_type_H',
+                          'reserved_room_type_G',
+                          'reserved_room_type_F',
+                          'reserved_room_type_E',
+                          'reserved_room_type_D',
+                          'reserved_room_type_C',
+                          'reserved_room_type_B',
+                          'reserved_room_type_A',
+                          'meal_Undefined',
+                          'meal_SC',
+                          'meal_HB',
+                          'meal_FB',
+                          'meal_BB',
+                          'market_segment_Undefined',
+                          'market_segment_Online TA',
+                          'market_segment_Offline TA/TO',
+                          'market_segment_Groups',
+                          'market_segment_Direct',
+                          'market_segment_Corporate',
+                          'market_segment_Complementary',
+                          'market_segment_Aviation',
+                          'hotel_Resort Hotel',
+                          'hotel_City Hotel',
+                          'distribution_channel_Undefined',
+                          'distribution_channel_TA/TO',
+                          'distribution_channel_GDS',
+                          'distribution_channel_Direct',
+                          'distribution_channel_Corporate',
+                          'deposit_type_Refundable',
+                          'deposit_type_Non Refund',
+                          'deposit_type_No Deposit',
+                          'customer_type_Transient-Party',
+                          'customer_type_Transient',
+                          'customer_type_Group',
+                          'customer_type_Contract',
+                          'assigned_room_type_P',
+                          'assigned_room_type_L',
+                          'assigned_room_type_K',
+                          'assigned_room_type_I',
+                          'assigned_room_type_H',
+                          'assigned_room_type_G',
+                          'assigned_room_type_F',
+                          'assigned_room_type_E',
+                          'assigned_room_type_D',
+                          'assigned_room_type_C',
+                          'assigned_room_type_B',
+                          'assigned_room_type_A'
+                          ]
+
 # encode_list = [['arrival_date_month', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],        # 0: feature, 1~len-1: types
 #                ]
 
@@ -110,11 +176,24 @@ def feature_one_hot_one(df, feature):
     dfNew = pd.concat([df, pOHE], axis = 1)
     return dfNew
 
-def feature_one_hot(df, list):
+def feature_one_hot(df, features):
     dfNew = df.copy()
-    for target in list:
+    for target in features:
         dfNew = feature_one_hot_one(dfNew, target)
     return dfNew
+
+def feature_pow(df, pow, features):
+    for target in features:
+        name = target + '_' + str(pow)
+        df[name] = df[target]**pow
+
+def feature_multi(df, multi, features):
+    for target in features:
+        df[target] = df[target]*multi
+
+def feature_standardize_multi_col(df, features, max):
+    for target in features:
+        df[target] = (df[target]-0)/(max-0)
 
 # def feature_encode_one(df, feature, types):
 #     column = []
@@ -165,13 +244,38 @@ def preprocessing(file_train, file_test):
     feature_delete(dfAll, del_features)
     dfAll = checkIsNull(dfAll)
     dfAll = feature_one_hot(dfAll, one_hot_list)
+    pow = 2
     feature_standardize(dfAll, stand_features)
+    feature_pow(dfAll, pow, pow_2_list_for_stand) # power stand features by pow
+    multi = 2
+    feature_multi(dfAll, multi, multi_2_list_for_one_hot) # multiply one hot features by multi
+    feature_standardize_multi_col(dfAll, stand_list_for_one_hot, multi)
     #data_train = data_train.dropna()
     dfAll = dfAll.sort_index(ascending = False, axis = 1)
     dfTrain = dfAll.iloc[:nTrain, :]
     dfTest = dfAll.iloc[nTrain:,  :]
 
     return dfTrain, dfRawTrain, dfAdr, dfIsCanceled, dfAdrReal, dfTest, dfRawTest
+
+
+def correlation(file_train):
+    dfTrain = pd.read_csv(file_train)
+
+    dfIsCanceled = dfTrain['is_canceled'].to_frame() # reserve label is_canceled
+    dfIsCanceled.reset_index(drop=True, inplace=True)
+    dfAdr = dfTrain['adr'].to_frame() # reserve label adr
+    dfAdr.reset_index(drop=True, inplace=True)
+    dfIsCanceled = checkIsNull(dfIsCanceled)
+    dfAdr = checkIsNull(dfAdr)
+    dfAdrReal = ((dfIsCanceled['is_canceled'] == 0) * dfAdr['adr']).to_frame() # get real adr
+    dfAdrReal = dfAdrReal.rename(columns={0: 'adr_real'})
+    dfTrain['adr_real'] = dfAdrReal['adr_real'].to_list()
+
+    feature_delete(dfTrain, del_features)
+    dfTrain = feature_one_hot(dfTrain, one_hot_list)
+    dfTrain = dfTrain.sort_index(ascending = False, axis = 1)
+    dfCorr = dfTrain.corr(method ='pearson') 
+    dfCorr.to_csv('./corr.csv', index=True)
 
 # def preprocessing_revenue():
 #     data_train = pd.read_csv('../data/train.csv')

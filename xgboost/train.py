@@ -19,7 +19,8 @@ def train_adr(dfTrain, dfLabel, k, train_percent, num_round):
 
     fold = util.getFold(k, nX_train)
 
-    algs = [[3, 1], [4, 1], [5, 1], [6, 1], [7, 1]] # [max_depth, eta]
+    param_name = ['max_depth', 'eta']
+    algs = [[10, 0.3]] # [max_depth, eta]
     nAlg = len(algs)
     modelList_all = [[] for _ in range(nAlg)]
     E_algs = [0] * nAlg
@@ -41,7 +42,7 @@ def train_adr(dfTrain, dfLabel, k, train_percent, num_round):
             E_algs[j] = E_algs[j] + util.rmse(dtrain_out.get_label(), preds)
 
     E_algs[:] = [x/k for x in E_algs]
-    iBestAlg = util.get_iBestAlg(E_algs)
+    iBestAlg = util.get_iBestAlg(E_algs, param_name, algs)
     modelList = modelList_all[iBestAlg]
     #param = {'max_depth': bestAlg[0], 'eta': bestAlg[1], 'objective':'reg:squarederror'}
     #bst = xgb.train(param, data_adr, num_round)
@@ -61,7 +62,8 @@ def train_isCanceled(dfTrain, dfLabel, k, train_percent, num_round):
 
     fold = util.getFold(k, nX_train)
 
-    algs = [[3, 1], [4, 1], [5, 1], [6, 1], [7, 1]] # [max_depth, eta]
+    param_name = ['max_depth', 'eta']
+    algs = [[10, 0.3]] # [max_depth, eta]
     nAlg = len(algs)
     modelList_all = [[] for _ in range(nAlg)]
     E_algs = [0] * nAlg
@@ -83,7 +85,7 @@ def train_isCanceled(dfTrain, dfLabel, k, train_percent, num_round):
             E_algs[j] = E_algs[j] + util.zero_one_Error(dtrain_out.get_label(), preds)
 
     E_algs[:] = [x/k for x in E_algs]
-    iBestAlg = util.get_iBestAlg(E_algs)
+    iBestAlg = util.get_iBestAlg(E_algs, param_name, algs)
     modelList = modelList_all[iBestAlg]
     #param = {'max_depth': bestAlg[0], 'eta': bestAlg[1], 'objective':'reg:squarederror'}
     #bst = xgb.train(param, data_adr, num_round)

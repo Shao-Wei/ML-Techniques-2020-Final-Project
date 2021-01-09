@@ -6,6 +6,7 @@ import util
 import train
 import xgboost as xgb
 import csv
+import sys
 
 # preprocessing
 print("start preprocessing ...")
@@ -47,6 +48,7 @@ print("Ein_L1 = ", Ein_L1)
 print("test_pridict: ", revenue_test)
 
 # write predict
+testlabel_filename = sys.argv[1]
 dfTest_nolabel = pd.read_csv('../data/test_nolabel.csv')
 dfTest_nolabel['label'] = revenue_test
-dfTest_nolabel.to_csv('../data/test_label.csv', index=False)
+dfTest_nolabel.to_csv(testlabel_filename, index=False)

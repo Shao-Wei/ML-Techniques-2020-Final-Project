@@ -31,7 +31,11 @@ def L1_Error(label, predict):
     E = E / len(label)
     return E
 
-def get_iBestAlg(errors):
+def get_iBestAlg(errors, param, param_value):
+    for i in range(0, len(param_value)):
+        print(i, "-th algorithm:", sep='')
+        for j in range(0, len(param)):
+            print(" ", param[j], "=", param_value[i][j], sep='')
     for i in range(0, len(errors)):
         print("E_train_out of ", i, "-th algorithm = ", errors[i], sep='')
     iBestAlg = 0
