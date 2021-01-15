@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 def getFold(k, nX):
     nValid = int(nX*(1/k))
@@ -11,23 +12,23 @@ def getFold(k, nX):
     return fold
 
 def rmse(label, predict):
-    E = 0 
-    for i in range(len(label)):
-        E = E + (label[i] - predict[i])**2
+    label_arr = np.array(label)
+    predict_arr = np.array(predict)
+    E = np.sum(np.square(label_arr-predict_arr))
     E = math.sqrt(E / len(label))
     return E
 
 def zero_one_Error(label, predict):
-    E = 0 
-    for i in range(len(label)):
-        E = E + (label[i] != predict[i])
+    label_arr = np.array(label)
+    predict_arr = np.array(predict)
+    E = np.sum(np.not_equal(label_arr, predict_arr))
     E = E / len(label)
     return E
 
 def L1_Error(label, predict):
-    E = 0 
-    for i in range(len(label)):
-        E = E + abs(label[i] - predict[i])
+    label_arr = np.array(label)
+    predict_arr = np.array(predict)
+    E = np.sum(np.absolute(label_arr - predict_arr))
     E = E / len(label)
     return E
 

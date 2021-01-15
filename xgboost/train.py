@@ -7,20 +7,16 @@ import xgboost as xgb
 from scipy import stats
 import csv
 
-def train_adr(dfTrain, dfLabel, k, train_percent, num_round):
+def train_adr(dfTrain, dfLabel_train, dfValid, dfLabel_valid, k, num_round):
     print("start training adr ...")
-    dtrain_all = xgb.DMatrix(dfTrain, label=dfLabel)
-    nX = dtrain_all.num_row()
-    nX_train = int(train_percent*nX)
-    trainInd = list(range(0, nX_train))
-    validInd = list(range(nX_train, nX))
-    dtrain = dtrain_all.slice(trainInd)
-    dvalid = dtrain_all.slice(validInd)
+    dtrain = xgb.DMatrix(dfTrain, label=dfLabel_train) # shuffle and to DMatrix
+    dvalid = xgb.DMatrix(dfValid, label=dfLabel_valid)
+    nX = dtrain.num_row()
 
-    fold = util.getFold(k, nX_train)
+    fold = util.getFold(k, nX)
 
     param_name = ['max_depth', 'eta']
-    algs = [[10, 0.3]] # [max_depth, eta]
+    algs = [[10, 0.07]] # [max_depth, eta]
     nAlg = len(algs)
     modelList_all = [[] for _ in range(nAlg)]
     E_algs = [0] * nAlg
@@ -50,20 +46,16 @@ def train_adr(dfTrain, dfLabel, k, train_percent, num_round):
 
     return modelList, dtrain, dvalid
 
-def train_isCanceled(dfTrain, dfLabel, k, train_percent, num_round):
+def train_isCanceled(dfTrain, dfLabel_train, dfValid, dfLabel_valid, k, num_round):
     print("start training is_canceled ...")
-    dtrain_all = xgb.DMatrix(dfTrain, label=dfLabel)
-    nX = dtrain_all.num_row()
-    nX_train = int(train_percent*nX)
-    trainInd = list(range(0, nX_train))
-    validInd = list(range(nX_train, nX))
-    dtrain = dtrain_all.slice(trainInd)
-    dvalid = dtrain_all.slice(validInd)
+    dtrain = xgb.DMatrix(dfTrain, label=dfLabel_train) # shuffle and to DMatrix
+    dvalid = xgb.DMatrix(dfValid, label=dfLabel_valid)
+    nX = dtrain.num_row()
 
-    fold = util.getFold(k, nX_train)
+    fold = util.getFold(k, nX)
 
     param_name = ['max_depth', 'eta']
-    algs = [[10, 0.3]] # [max_depth, eta]
+    algs = [[15, 0.1]] # [max_depth, eta]
     nAlg = len(algs)
     modelList_all = [[] for _ in range(nAlg)]
     E_algs = [0] * nAlg
@@ -93,6 +85,33 @@ def train_isCanceled(dfTrain, dfLabel, k, train_percent, num_round):
 
     return modelList, dtrain, dvalid
 
+def train_quantize(Train, Label_train, Valid, Label_valid, Test, num_round):
+    train_arr = np.array(Train)
+    label_train_arr = np.array(Label_train)
+    valid_arr = np.array(Valid)
+    label_valid_arr = np.array(Label_valid)
+    test_arr = np.array(Test)
+    train_arr = np.reshape(train_arr, (len(train_arr), 1))
+    label_train_arr = np.reshape(label_train_arr, (len(label_train_arr), 1))
+    valid_arr = np.reshape(valid_arr, (len(valid_arr), 1))
+    label_valid_arr = np.reshape(label_valid_arr, (len(label_valid_arr), 1))
+    test_arr = np.reshape(test_arr, (len(test_arr), 1))
+    dtrain = xgb.DMatrix(train_arr, label=label_train_arr)
+    dvalid = xgb.DMatrix(valid_arr, label=label_valid_arr)
+    dtest = xgb.DMatrix(test_arr, label=None)
+
+    watchlist = [(dtrain,'train'), (dvalid,'val')]
+    param = {'max_depth': 10, 'eta': 0.05, 'objective':'multi:softmax', 'num_class': 10, 'eval_metric':'merror'}
+    bst = xgb.train(param, dtrain, num_boost_round = num_round, early_stopping_rounds = 10, evals = watchlist)
+
+    pred_train = bst.predict(dtrain)
+    pred_valid = bst.predict(dvalid)
+    pred_test = bst.predict(dtest)
+
+    return pred_train, pred_valid, pred_test
+
+    
+
 def predict_adr_ensemble(data, modelList):
     preds = [0] * data.num_row()
     for i in range(len(modelList)):
@@ -113,37 +132,33 @@ def predict_isCanceled_ensemble(data, modelList):
     return preds
 
 # uniform aggregation
-def predict_revenue_ensemble_adr_isCanceled_combined(df, dfRaw, modelList, isTrain):
+def predict_revenue_ensemble_adr_isCanceled_combined(df, dfRaw, modelList, type): # type: 0:train, 1:valid, 2:test 
     data = xgb.DMatrix(df, label=None) # label is not used
     preds = predict_adr_ensemble(data, modelList)
-    # print(np.mean(np.array(preds)))
-    # dict = {'adr': preds}
-    # df_temp = pd.DataFrame(dict)
-    # if (isTrain):
-    #     df_temp.to_csv('adr_train.csv')
-    # else:
-    #     df_temp.to_csv('adr_test.csv')
-
-    if (isTrain):
+    if (type == 0):
         revenue = get_revenue_train(dfRaw, preds)
+    elif (type == 1):
+        revenue = get_revenue_valid(dfRaw, preds)
     else:
         revenue = get_revenue_test(dfRaw, preds)
-    revenue = revenue_quantization(revenue)
+    # revenue = revenue_quantization(revenue)
     return revenue
     # return 0
 
 # uniform aggregation
-def predict_revenue_ensemble_adr_isCanceled_separated(df, dfRaw, modelList_adr, modelList_isCancelded, isTrain):
+def predict_revenue_ensemble_adr_isCanceled_separated(df, dfRaw, modelList_adr, modelList_isCancelded, type): # type: 0:train, 1:valid, 2:test 
     data = xgb.DMatrix(df, label=None) # label is not used
     preds_adr = predict_adr_ensemble(data, modelList_adr)
     preds_isCancelded = predict_isCanceled_ensemble(data, modelList_isCancelded)
 
     preds = np.multiply(np.logical_not(preds_isCancelded), preds_adr)
-    if (isTrain):
+    if (type == 0):
         revenue = get_revenue_train(dfRaw, preds)
+    elif (type == 1):
+        revenue = get_revenue_valid(dfRaw, preds)
     else:
         revenue = get_revenue_test(dfRaw, preds)
-    revenue = revenue_quantization(revenue)
+    #revenue = revenue_quantization(revenue)
     return revenue
 
 month_dic = {
@@ -189,6 +204,16 @@ def delete_non_date_test(list):
     return list_out
 
 def get_revenue_train(df, adr_preds):
+    revenue = [[[] for _ in range(12)] for _ in range(3)]
+    for i in range(3):
+        for j in range(12):
+            revenue[i][j] = [0]*31
+    for i in range(len(df)):
+        revenue[df.iloc[i]['arrival_date_year']-2015][month_dic[df.iloc[i]['arrival_date_month']]][df.iloc[i]['arrival_date_day_of_month']-1] += (df.iloc[i]['stays_in_weekend_nights']+df.iloc[i]['stays_in_week_nights'])*adr_preds[i]
+    revenue = delete_non_date_train(revenue)
+    return [c for a in revenue for b in a for c in b]
+
+def get_revenue_valid(df, adr_preds):
     revenue = [[[] for _ in range(12)] for _ in range(3)]
     for i in range(3):
         for j in range(12):

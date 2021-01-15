@@ -4,13 +4,52 @@ import util
 
 del_features = ['ID',
                 'arrival_date_year', 
-                'arrival_date_month', 
+                # 'arrival_date_month', 
                 'arrival_date_week_number', 
-                'arrival_date_day_of_month', 
+                # 'arrival_date_day_of_month', 
                 'country', 
                 'agent', 
                 'company', 
                 ]
+                
+del_corr_features_ohe = [ # corr < 0.05
+                         'reserved_room_type_P',
+                         'reserved_room_type_L',
+                         'reserved_room_type_B',
+                         'meal_Undefined',
+                         'meal_SC',
+                         'meal_FB',
+                         'market_segment_Undefined',
+                         'market_segment_Aviation',
+                         'distribution_channel_Undefined',
+                         'distribution_channel_GDS',
+                         'deposit_type_Refundable',
+                         'customer_type_Group',
+                         'customer_type_Contract',
+                         'assigned_room_type_P',
+                         'assigned_room_type_L',
+                         'assigned_room_type_K',
+                         'assigned_room_type_B'
+                         # corr < 0.1
+                         # 'reserved_room_type_H',
+                         # 'reserved_room_type_E',
+                         # 'reserved_room_type_C',
+                         # 'meal_HB',
+                         # 'meal_BB',
+                         # 'market_segment_Corporate',
+                         # 'assigned_room_type_I',
+                         # 'assigned_room_type_H',
+                         # 'assigned_room_type_E',
+                         # 'assigned_room_type_C'
+                         ]
+                         
+del_corr_features_stand = [ # corr < 0.05
+                            # corr < 0.1
+                            'stays_in_weekend_nights',
+                            'previous_bookings_not_canceled',
+                            'days_in_waiting_list',
+                            'babies',
+                            ]
 
 label_features = ['reservation_status', 
                   'reservation_status_date', 
@@ -32,7 +71,10 @@ stand_features = ['lead_time',
                   'total_of_special_requests'
                   ]
 
-one_hot_list = ['hotel', 
+one_hot_list = ['hotel',
+                'arrival_date_month',
+                # 'arrival_date_week_number',  
+                'arrival_date_day_of_month', 
                 'meal', 
                 'market_segment', 
                 'distribution_channel', 
@@ -42,12 +84,13 @@ one_hot_list = ['hotel',
                 'customer_type'
                 ]
 
-pow_2_list_for_stand = ['total_of_special_requests',
-                        'required_car_parking_spaces',
-                        'lead_time',
-                        'children',
-                        ]
-multi_2_list_for_one_hot = ['market_segment_Online TA',
+pow_list_for_stand = ['total_of_special_requests',
+                      'required_car_parking_spaces',
+                      'lead_time',
+                      'children',
+                      ]
+multi_2_list_for_one_hot = ['reserved_room_type_A',
+                            'market_segment_Online TA',
                             'market_segment_Groups',
                             'market_segment_Direct',
                             'hotel_Resort Hotel',
@@ -221,41 +264,75 @@ def feature_standardize_multi_col(df, features, max):
 #     feature_delete_one(df, feature2)
 
 def preprocessing(file_train, file_test):
-    dfRawTrain = pd.read_csv(file_train)
-    dfRawTrain = dfRawTrain.sample(frac=1) # shuffle
-    dfRawTrain.reset_index(drop=True, inplace=True)
-    dfTrain = dfRawTrain.copy()
+    dfRawTrain_all = pd.read_csv(file_train)
+    dfRawTrain_all = dfRawTrain_all[dfRawTrain_all.adr < 1000]
+    # dfRawTrain_all = dfRawTrain_all[dfRawTrain_all.adr < 300]
+    # dfRawTrain_all = dfRawTrain_all[dfRawTrain_all.adr >= 0]
+    dfRawTrain_all.reset_index(drop=True, inplace=True)
+    dfTrain_all = dfRawTrain_all.copy()
 
     dfRawTest = pd.read_csv(file_test)
     dfTest = dfRawTest.copy()
 
-    dfIsCanceled = dfTrain['is_canceled'].to_frame() # reserve label is_canceled
-    dfIsCanceled.reset_index(drop=True, inplace=True)
-    dfAdr = dfTrain['adr'].to_frame() # reserve label adr
-    dfAdr.reset_index(drop=True, inplace=True)
-    dfIsCanceled = checkIsNull(dfIsCanceled)
-    dfAdr = checkIsNull(dfAdr)
-    dfAdrReal = ((dfIsCanceled['is_canceled'] == 0) * dfAdr['adr']).to_frame() # get real adr
-    dfAdrReal = dfAdrReal.rename(columns={0: 'adr_real'})
+    dfIsCanceled_all = dfTrain_all['is_canceled'].to_frame() # reserve label is_canceled
+    dfIsCanceled_all.reset_index(drop=True, inplace=True)
+    dfAdr_all = dfTrain_all['adr'].to_frame() # reserve label adr
+    dfAdr_all.reset_index(drop=True, inplace=True)
+    dfIsCanceled_all = checkIsNull(dfIsCanceled_all)
+    dfAdr_all = checkIsNull(dfAdr_all)
+    dfAdrReal_all = ((dfIsCanceled_all['is_canceled'] == 0) * dfAdr_all['adr']).to_frame() # get real adr
+    dfAdrReal_all = dfAdrReal_all.rename(columns={0: 'adr_real'})
 
-    feature_delete(dfTrain, label_features)
-    dfAll = pd.concat([dfTrain, dfTest])
-    nTrain = len(dfTrain)
+    feature_delete(dfTrain_all, label_features)
+    dfAll = pd.concat([dfTrain_all, dfTest])
+    nTrain = len(dfTrain_all)
     feature_delete(dfAll, del_features)
     dfAll = checkIsNull(dfAll)
     dfAll = feature_one_hot(dfAll, one_hot_list)
-    pow = 2
+    feature_delete(dfAll, del_corr_features_ohe) # delete ohe features if low correlation
     feature_standardize(dfAll, stand_features)
-    feature_pow(dfAll, pow, pow_2_list_for_stand) # power stand features by pow
-    multi = 2
-    feature_multi(dfAll, multi, multi_2_list_for_one_hot) # multiply one hot features by multi
-    feature_standardize_multi_col(dfAll, stand_list_for_one_hot, multi)
-    #data_train = data_train.dropna()
+    feature_pow(dfAll, 2, pow_list_for_stand) # power stand features by pow
+    feature_pow(dfAll, 3, pow_list_for_stand) # power stand features by pow
+    # feature_delete(dfAll, del_corr_features_stand) # delete stand features if low correlation
+    #multi = 2
+    #feature_multi(dfAll, multi, multi_2_list_for_one_hot) # multiply one hot features by multi
+    #feature_standardize_multi_col(dfAll, stand_list_for_one_hot, multi)
     dfAll = dfAll.sort_index(ascending = False, axis = 1)
-    dfTrain = dfAll.iloc[:nTrain, :]
+    dfTrain_all = dfAll.iloc[:nTrain, :]
     dfTest = dfAll.iloc[nTrain:,  :]
 
-    return dfTrain, dfRawTrain, dfAdr, dfIsCanceled, dfAdrReal, dfTest, dfRawTest
+    # for valid set 1
+    # for valid set 2
+    # for valid set 3
+    # for valid set 4
+    # for valid set 5
+    cut = 73930 - 1
+    dfTrain = dfTrain_all.iloc[:cut, :]
+    dfAdr_train = dfAdr_all.iloc[:cut, :]
+    dfIsCanceled_train = dfIsCanceled_all.iloc[:cut, :]
+    dfAdrReal_train = dfAdrReal_all.iloc[:cut, :]
+    dfRawTrain = dfRawTrain_all.iloc[:cut, :]
+    # shuffle Train
+    idx = np.random.RandomState(seed=5).permutation(dfTrain.index)
+    # idx = np.random.permutation(dfTrain.index)
+    dfTrain = dfTrain.reindex(idx)
+    dfAdr_train = dfAdr_train.reindex(idx)
+    dfIsCanceled_train = dfIsCanceled_train.reindex(idx)
+    dfAdrReal_train = dfAdrReal_train.reindex(idx)
+    dfRawTrain = dfRawTrain.reindex(idx)
+    dfTrain.reset_index(drop=True, inplace=True)
+    dfAdr_train.reset_index(drop=True, inplace=True)
+    dfIsCanceled_train.reset_index(drop=True, inplace=True)
+    dfAdrReal_train.reset_index(drop=True, inplace=True)
+    dfRawTrain.reset_index(drop=True, inplace=True)
+
+    dfValid = dfTrain_all.iloc[cut+1:nTrain, :]
+    dfAdr_valid = dfAdr_all.iloc[cut+1:nTrain, :]
+    dfIsCanceled_valid = dfIsCanceled_all.iloc[cut+1:nTrain, :]
+    dfAdrReal_valid = dfAdrReal_all.iloc[cut+1:nTrain, :]
+    dfRawValid = dfRawTrain_all.iloc[cut+1:nTrain, :]
+
+    return dfTrain, dfRawTrain, dfAdr_train, dfIsCanceled_train, dfAdrReal_train, dfValid, dfRawValid, dfAdr_valid, dfIsCanceled_valid, dfAdrReal_valid, dfTest, dfRawTest
 
 
 def correlation(file_train):

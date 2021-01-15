@@ -10,14 +10,12 @@ import sys
 
 # preprocessing
 print("start preprocessing ...")
-dfTrain, dfRawTrain, dfAdr, dfIsCancelled, dfAdrReal, dfTest, dfRawTest = pp.preprocessing('../data/train.csv', '../data/test.csv')
-# dfTrain.to_csv('dfTrain.csv', index=False)
-# dfTest.to_csv('dfTest.csv', index=False)
+dfTrain, dfRawTrain, dfAdr_train, dfIsCanceled_train, dfAdrReal_train, dfValid, dfRawValid, dfAdr_valid, dfIsCanceled_valid, dfAdrReal_valid, dfTest, dfRawTest = pp.preprocessing('../data/train.csv', '../data/test.csv')
 print("preprocessing done ...")
 
 print("start training ..")
 # adr, is_canceled combined
-modelList_adr_real, dtrain_adr_real, dvalid_adr_real = train.train_adr(dfTrain, dfAdrReal, 5, 0.8, 500)
+modelList_adr_real, dtrain_adr_real, dvalid_adr_real = train.train_adr(dfTrain, dfAdrReal_train, dfValid, dfAdrReal_valid, 5, 10000)
 print("training done ...")
 
 # compute error
@@ -29,20 +27,34 @@ print("Eval_adr_real: ", Eval_adr_real)
 
 print("computing revenue ...")
 # adr, is_canceled combined
-revenue_train = train.predict_revenue_ensemble_adr_isCanceled_combined(dfTrain, dfRawTrain, modelList_adr_real, 1)
-revenue_test = train.predict_revenue_ensemble_adr_isCanceled_combined(dfTest, dfRawTest, modelList_adr_real, 0)
-print("train_predict: ", revenue_train)
+revenue_train = train.predict_revenue_ensemble_adr_isCanceled_combined(dfTrain, dfRawTrain, modelList_adr_real, 0)
+revenue_valid = train.predict_revenue_ensemble_adr_isCanceled_combined(dfValid, dfRawValid, modelList_adr_real, 1)
+revenue_test = train.predict_revenue_ensemble_adr_isCanceled_combined(dfTest, dfRawTest, modelList_adr_real, 2)
+# print("train_predict: ", revenue_train)
 print("computing revenue done ...")
 
 dfTrain_label = pd.read_csv('../data/train_label.csv')
 train_label = dfTrain_label['label'].tolist()
-print("train_label: ", train_label)
-Ein_0_1 = util.zero_one_Error(train_label, revenue_train)
-Ein_L1 = util.L1_Error(train_label, revenue_train)
+# print("train_label: ", train_label)
+revenue_all = (np.array(revenue_train) + np.array(revenue_valid)).tolist()
+revenue_train = revenue_all[:511]
+revenue_valid = revenue_all[511:]
+valid_label = train_label[511:]
+train_label = train_label[:511]
 
-print("Ein_0_1 = ", Ein_0_1)
-print("Ein_L1 = ", Ein_L1)
+# train quantization
+revenue_train, revenue_valid, revenue_test = train.train_quantize(revenue_train, train_label, revenue_valid, valid_label, revenue_test, 10000)
+
+# Ein_0_1 = util.zero_one_Error(train_label, revenue_train)
+# Ein_L1 = util.L1_Error(train_label, revenue_train)
+Eval_L1 = util.L1_Error(valid_label, revenue_valid)
+
+# print("Ein_0_1 = ", Ein_0_1)
+# print("Ein_L1 = ", Ein_L1)
+# print("test_pridict: ", revenue_test)
+print("Eval_L1 = ", Eval_L1)
 print("test_pridict: ", revenue_test)
+
 
 # write predict
 testlabel_filename = sys.argv[1]
