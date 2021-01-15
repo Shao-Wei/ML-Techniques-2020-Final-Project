@@ -31,6 +31,42 @@ dropList = ['ID', 'arrival_date_year', 'arrival_date_month', 'arrival_date_week_
 labelList = ['is_canceled', 'adr', 'reservation_status', 'reservation_status_date']
 
 ## preprocess function
+# dfRawTrain used in deriving revenue 
+# taking test csv into consideration - training & testing have large difference on the distribution
+def preprocess(trainFileName, testFileName):
+    print("  Preprocessing..", trainFileName)
+    dfRawTrain = pd.read_csv(trainFileName, header = 0, sep=',') # read in csv
+    dfRawTrain_dup = dfRawTrain.copy()
+    dfRawTest = pd.read_csv(testFileName, header = 0, sep=',') # read in csv
+    dfRawTest_dup = dfRawTest.copy()
+
+    dfIsCanceled = dfRawTrain[['is_canceled']] # reserve label is_canceled
+    dfAdr = dfRawTrain[['adr']] # reserve label adr
+    
+    dfAll = pd.concat([dfRawTrain, dfRawTest])
+    nTrain = len(dfRawTrain)
+
+    for target in dropList:
+        dfAll.drop(target, inplace=True, axis=1)
+    for target in labelList:
+        dfAll.drop(target, inplace=True, axis=1)
+    for target in oheList:
+        dfAll = ohe_target(dfAll, target)
+    for target in scaleList:
+        dfAll[target] = (dfAll[target] - dfAll[target].mean()) / dfAll[target].std()
+
+    dfAll = checkIsNull(dfAll)
+    dfAdr = checkIsNull(dfAdr)
+    dfIsCanceled = checkIsNull(dfIsCanceled)
+    dfAdrReal = ((dfIsCanceled['is_canceled'] == 0) * dfAdr['adr']).to_frame() # get real adr
+    dfAdrReal = dfAdrReal.rename(columns={0: 'adr_real'})
+    
+    dfAll = dfAll.sort_index(ascending = False, axis = 1)
+    dfEncodedTrain = dfAll.iloc[:nTrain, :]
+    dfEncodedTest = dfAll.iloc[nTrain:,  :]
+
+    return dfEncodedTrain, dfAdr, dfIsCanceled, dfAdrReal, dfRawTrain_dup, dfEncodedTest, dfRawTest_dup
+
 def preprocess_train(trainFileName):
     print("  Preprocessing..", trainFileName)
     dfRawTrain = pd.read_csv(trainFileName, header = 0, sep=',') # read in csv
@@ -86,4 +122,3 @@ def preprocess_test(testFileName, feature_train):
     dfEncodedTest = dfRawTest.sort_index(ascending = False, axis = 1)
 
     return dfEncodedTest, dfRawTest_dup
-

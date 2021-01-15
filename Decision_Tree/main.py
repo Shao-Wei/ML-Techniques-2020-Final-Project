@@ -11,12 +11,16 @@ pTestcsv = "../data/test.csv"
 
 ## get data, alias
 print("Start preprocessing ...")
-dfTrain, dfAdr, dfIsCanceled, dfAdrReal, dfRawTrain, feature_train = pp.preprocess_train(pTraincsv) # dfRawTrain used in deriving revenue 
-dfTest, dfRawTest = pp.preprocess_test(pTestcsv, feature_train)
+dfTrain, dfAdr, dfIsCanceled, dfAdrReal, dfRawTrain, dfTest, dfRawTest = pp.preprocess(pTraincsv, pTestcsv) 
+# dfTrain, dfAdr, dfIsCanceled, dfAdrReal, dfRawTrain, feature_train = pp.preprocess_train(pTraincsv)
+# dfTest, dfRawTest = pp.preprocess_test(pTestcsv, feature_train)
+
 print("Preprocessing done ...")
 
 print("Start training ..")
 modelList_adr_real = tr.train_adr(dfTrain, dfAdrReal, 5)
+# modelList_adr = tr.train_adr(dfTrain, dfAdr, 5)
+# modelList_is_canceled = tr.train_adr(dfTrain, dfIsCanceled, 5)
 print("Training done ...")
 
 print("Computing revenue ...")

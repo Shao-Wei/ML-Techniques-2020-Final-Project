@@ -1,3 +1,4 @@
+import numpy as np
 import math
 
 ## aux for get_revenue_train
@@ -10,23 +11,23 @@ dicMonth = {
 
 def remove_extra_date_train(list):
     list_out = list
-    list_out[0][1][28:31] = []
-    list_out[0][3][30:31] = []
-    list_out[0][5][30:31] = []
-    list_out[0][8][30:31] = []
+    list_out[0][1][28:31]  = []
+    list_out[0][3][30:31]  = []
+    list_out[0][5][30:31]  = []
+    list_out[0][8][30:31]  = []
     list_out[0][10][30:31] = []
-    list_out[1][1][29:31] = []
-    list_out[1][3][30:31] = []
-    list_out[1][5][30:31] = []
-    list_out[1][8][30:31] = []
+    list_out[1][1][29:31]  = []
+    list_out[1][3][30:31]  = []
+    list_out[1][5][30:31]  = []
+    list_out[1][8][30:31]  = []
     list_out[1][10][30:31] = []
-    list_out[2][1][28:31] = []
-    list_out[2][3][30:31] = []
-    list_out[2][5][30:31] = []
-    list_out[2][8][30:31] = []
+    list_out[2][1][28:31]  = []
+    list_out[2][3][30:31]  = []
+    list_out[2][5][30:31]  = []
+    list_out[2][8][30:31]  = []
     list_out[2][10][30:31] = []
-    list_out[0][0:6] = [[]]
-    list_out[2][3:12] = [[]]
+    list_out[0][0:6]       = [[]]
+    list_out[2][3:12]      = [[]]
     return list_out
 
 def remove_extra_date_test(list):
@@ -47,6 +48,13 @@ def L1_Error(label, predict):
     E = 0 
     for i in range(len(label)):
         E = E + abs(label[i] - predict[i])
+    E = E / len(label)
+    return E
+
+def zero_one_Error(label, predict):
+    E = 0 
+    for i in range(len(label)):
+        E = E + (label[i] != predict[i])
     E = E / len(label)
     return E
 
@@ -92,6 +100,22 @@ def predict_revenue_ensemble_adr_isCanceled_combined(df, dfRaw, modelList, fMode
     for i in range(len(modelList)):
         preds = preds + modelList[i].predict(df)
     preds = preds / len(modelList)
+
+    if (fMode):
+        revenue = get_revenue_train(dfRaw, preds)
+    else:
+        revenue = get_revenue_test(dfRaw, preds)
+    revenue = revenue_quantization(revenue)
+    return revenue
+
+def predict_revenue_ensemble_adr_isCanceled_separated(df, dfRaw, modelList_adr, modelList_is_canceled, fMode):
+    preds_adr = [0] * df.shape[0]
+    preds_is_canceled_list = [0] * df.shape[0]
+    for i in range(len(modelList_adr)):
+        preds_adr = preds_adr + modelList_adr[i].predict(df)
+        preds_isCancelded_list = modelList_is_canceled[i].predict(df)
+    preds_adr = preds_adr / len(modelList_adr)
+    preds = np.multiply(np.logical_not(preds_is_canceled), preds_adr)
 
     if (fMode):
         revenue = get_revenue_train(dfRaw, preds)
