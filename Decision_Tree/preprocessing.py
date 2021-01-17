@@ -1,12 +1,6 @@
 import numpy as np
 import pandas as pd
 
-def encode_target(dfRaw, targetCol, dfEncode, encodeCol): # Add column to df with integers for the target.
-    targets = dfRaw[targetCol].unique()
-    map_to_int = {name: n for n, name in enumerate(targets)}
-    dfEncode[encodeCol] = dfRaw[targetCol].replace(map_to_int)
-    return (dfEncode, targets)
-
 def ohe_target(df, targetCol):
     pOHE = pd.get_dummies(df[targetCol], prefix = targetCol)
     df.drop(targetCol, inplace=True, axis = 1)
@@ -22,6 +16,91 @@ def checkIsNull(df):
                 print("    IsNULL column filled up: ", target, end='\n')
                 df[target] = df[target].replace(np.nan, 0)
     return df
+
+## feature classes
+label_features = ['reservation_status', 'reservation_status_date', 'is_canceled', 'adr']
+del_features = ['ID', 'arrival_date_year', 'arrival_date_week_number', 'country', 'agent', 'company']
+one_hot_list = ['hotel', 'arrival_date_month', 'arrival_date_day_of_month', 'meal', 'market_segment', 'distribution_channel', 'reserved_room_type', 'assigned_room_type', 'deposit_type', 'customer_type']
+# corr < 0.05
+del_corr_features_ohe = [ 'reserved_room_type_P', 'reserved_room_type_L', 'reserved_room_type_B', 'meal_Undefined', 'meal_SC', 'meal_FB', 'market_segment_Undefined', 'market_segment_Aviation', 'distribution_channel_Undefined', 'distribution_channel_GDS', 'deposit_type_Refundable', 'customer_type_Group', 'customer_type_Contract', 'assigned_room_type_P', 'assigned_room_type_L', 'assigned_room_type_K', 'assigned_room_type_B']
+stand_features = ['lead_time', 'stays_in_weekend_nights', 'stays_in_week_nights', 'adults', 'children', 'babies', 'previous_cancellations', 'previous_bookings_not_canceled', 'booking_changes', 'days_in_waiting_list', 'required_car_parking_spaces', 'total_of_special_requests' ]
+pow_list_for_stand = ['total_of_special_requests', 'required_car_parking_spaces', 'lead_time', 'children' ]
+
+# modified from mstf7249
+# rm features w/ low correlation, add pow 2 3 for important features
+def preprocessing_enhanced(file_train, file_test):
+    # get raw data
+    dfRawTrain_all = pd.read_csv(file_train)
+    dfRawTrain_all = dfRawTrain_all[dfRawTrain_all.adr < 1000]
+    dfRawTrain_all.reset_index(drop=True, inplace=True)
+    dfTrain_all = dfRawTrain_all.copy()
+    dfRawTest = pd.read_csv(file_test)
+    dfTest = dfRawTest.copy()
+
+    # reserve label
+    dfIsCanceled_all = dfTrain_all['is_canceled'].to_frame()
+    dfIsCanceled_all.reset_index(drop=True, inplace=True)
+    dfIsCanceled_all = checkIsNull(dfIsCanceled_all)
+    dfAdr_all = dfTrain_all['adr'].to_frame()
+    dfAdr_all.reset_index(drop=True, inplace=True)
+    dfAdr_all = checkIsNull(dfAdr_all)
+    dfAdrReal_all = ((dfIsCanceled_all['is_canceled'] == 0) * dfAdr_all['adr']).to_frame() # get real adr
+    dfAdrReal_all = dfAdrReal_all.rename(columns={0: 'adr_real'})
+
+    # concat train & test
+    for f in label_features:
+        del dfTrain_all[f]
+    dfAll = pd.concat([dfTrain_all, dfTest])
+    dfAll = checkIsNull(dfAll)
+    nTrain = len(dfTrain_all)
+
+    # drop and enhance
+    for f in del_features:
+        del dfAll[f]
+    for f in one_hot_list:
+        dfAll = ohe_target(dfAll, f)
+    for f in del_corr_features_ohe:
+        del dfAll[f]
+    for f in stand_features:
+        dfAll[f] = (dfAll[f] - dfAll[f].min()) / (dfAll[f].max() - dfAll[f].min())
+    for f in pow_list_for_stand:
+        name2 = f + '_' + str(2)
+        name3 = f + '_' + str(3)
+        dfAll[name2] = dfAll[f]**2
+        dfAll[name3] = dfAll[f]**3
+
+    dfAll = dfAll.sort_index(ascending = False, axis = 1)
+    dfTrain_all = dfAll.iloc[:nTrain, :]
+    dfTest = dfAll.iloc[nTrain:,  :]
+
+    # divide into train and valid
+    cut = 73930 - 1
+    dfTrain = dfTrain_all.iloc[:cut, :]
+    dfAdr_train = dfAdr_all.iloc[:cut, :]
+    dfIsCanceled_train = dfIsCanceled_all.iloc[:cut, :]
+    dfAdrReal_train = dfAdrReal_all.iloc[:cut, :]
+    dfRawTrain = dfRawTrain_all.iloc[:cut, :]
+    
+    # idx = np.random.RandomState(seed=5).permutation(dfTrain.index)
+    # dfTrain = dfTrain.reindex(idx)
+    # dfAdr_train = dfAdr_train.reindex(idx)
+    # dfIsCanceled_train = dfIsCanceled_train.reindex(idx)
+    # dfAdrReal_train = dfAdrReal_train.reindex(idx)
+    # dfRawTrain = dfRawTrain.reindex(idx)
+    # dfTrain.reset_index(drop=True, inplace=True)
+    # dfAdr_train.reset_index(drop=True, inplace=True)
+    # dfIsCanceled_train.reset_index(drop=True, inplace=True)
+    # dfAdrReal_train.reset_index(drop=True, inplace=True)
+    # dfRawTrain.reset_index(drop=True, inplace=True)
+
+    dfValid = dfTrain_all.iloc[cut+1:nTrain, :]
+    dfAdr_valid = dfAdr_all.iloc[cut+1:nTrain, :]
+    dfIsCanceled_valid = dfIsCanceled_all.iloc[cut+1:nTrain, :]
+    dfAdrReal_valid = dfAdrReal_all.iloc[cut+1:nTrain, :]
+    dfRawValid = dfRawTrain_all.iloc[cut+1:nTrain, :]
+
+    return dfTrain, dfRawTrain, dfAdr_train, dfIsCanceled_train, dfAdrReal_train, dfValid, dfRawValid, dfAdr_valid, dfIsCanceled_valid, dfAdrReal_valid, dfTest, dfRawTest
+
 
 ## feature classes
 oheList = ['hotel', 'meal', 'market_segment', 'distribution_channel', 'reserved_room_type', 'assigned_room_type', 'deposit_type', 'customer_type']

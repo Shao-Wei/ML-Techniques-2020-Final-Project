@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from scipy import stats
 
 ## aux for get_revenue_train
 dicMonth = {
@@ -61,15 +62,15 @@ def zero_one_Error(label, predict):
 ## util
 def get_bestAlg(errors):
     for i in range(0, len(errors)):
-        print("  E_valid of ", i, "-th algorithm = ", errors[i], sep='')
+        print("  E_cv of ", i, "-th algorithm = ", errors[i], sep='')
     bestAlg = 0
     E_min = errors[0]
     for i in range(1, len(errors)):
         if (errors[i] < E_min):
             E_min = errors[i]
             bestAlg = i
-    print("  best E_valid = ", E_min, sep='')
-    return bestAlg
+    print("  best E_cv = ", E_min, sep='')
+    return bestAlg, E_min
 
 def get_revenue_train(df, adr_preds):
     revenue = [[[] for _ in range(12)] for _ in range(3)]
@@ -79,6 +80,16 @@ def get_revenue_train(df, adr_preds):
     for i in range(len(df)):
         revenue[df.iloc[i]['arrival_date_year']-2015][dicMonth[df.iloc[i]['arrival_date_month']]][df.iloc[i]['arrival_date_day_of_month']-1] += (df.iloc[i]['stays_in_weekend_nights']+df.iloc[i]['stays_in_week_nights'])*adr_preds[i]
     revenue = remove_extra_date_train(revenue) # rm dates which do not exist in train set 
+    return [c for a in revenue for b in a for c in b]
+
+def get_revenue_valid(df, adr_preds):
+    revenue = [[[] for _ in range(12)] for _ in range(3)]
+    for i in range(3):
+        for j in range(12):
+            revenue[i][j] = [0]*31
+    for i in range(len(df)):
+        revenue[df.iloc[i]['arrival_date_year']-2015][dicMonth[df.iloc[i]['arrival_date_month']]][df.iloc[i]['arrival_date_day_of_month']-1] += (df.iloc[i]['stays_in_weekend_nights']+df.iloc[i]['stays_in_week_nights'])*adr_preds[i]
+    revenue = remove_extra_date_train(revenue)
     return [c for a in revenue for b in a for c in b]
 
 def get_revenue_test(df, adr_preds):
@@ -95,31 +106,40 @@ def revenue_quantization(revenue):
     revenue_quan = [0 if x < 0 else x for x in revenue_quan] # set negative values to zero
     return revenue_quan
 
-def predict_revenue_ensemble_adr_isCanceled_combined(df, dfRaw, modelList, fMode): # fMode = 1 for train, = 0 for test
+def getAdrEnsemblePredict(modelList, df):
     preds = [0] * df.shape[0]
     for i in range(len(modelList)):
         preds = preds + modelList[i].predict(df)
     preds = preds / len(modelList)
+    return preds
 
-    if (fMode):
+def getIsCanceledEnsemblePredict(modelList, df):
+    preds = [0] * df.shape[0]
+    for i in range(len(modelList)):
+        preds = preds + modelList[i].predict(df)
+    preds = preds / len(modelList)
+    return preds
+
+def predict_revenue_ensemble_adr_isCanceled_combined(df, dfRaw, modelList, fMode): # fMode = 1 for train, = 0 for test
+    preds = getAdrEnsemblePredict(modelList, df)
+    if (fMode == 0):
         revenue = get_revenue_train(dfRaw, preds)
+    elif (fMode == 1):
+        revenue = get_revenue_valid(dfRaw, preds)
     else:
         revenue = get_revenue_test(dfRaw, preds)
-    revenue = revenue_quantization(revenue)
+    # revenue = revenue_quantization(revenue)
     return revenue
 
 def predict_revenue_ensemble_adr_isCanceled_separated(df, dfRaw, modelList_adr, modelList_is_canceled, fMode):
-    preds_adr = [0] * df.shape[0]
-    preds_is_canceled_list = [0] * df.shape[0]
-    for i in range(len(modelList_adr)):
-        preds_adr = preds_adr + modelList_adr[i].predict(df)
-        preds_isCancelded_list = modelList_is_canceled[i].predict(df)
-    preds_adr = preds_adr / len(modelList_adr)
-    preds = np.multiply(np.logical_not(preds_is_canceled), preds_adr)
-
-    if (fMode):
+    preds_adr = getAdrEnsemblePredict(modelList_adr, df)
+    preds_isCanceled = getIsCanceledEnsemblePredict(modelList_is_canceled, df)
+    preds = np.multiply((1-preds_isCanceled), preds_adr)
+    if (fMode == 0):
         revenue = get_revenue_train(dfRaw, preds)
+    elif (fMode == 1):
+        revenue = get_revenue_valid(dfRaw, preds)
     else:
         revenue = get_revenue_test(dfRaw, preds)
-    revenue = revenue_quantization(revenue)
+    # revenue = revenue_quantization(revenue)
     return revenue
